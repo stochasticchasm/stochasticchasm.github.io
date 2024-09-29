@@ -1,0 +1,115 @@
+---
+import Nav from '../components/Nav.astro';
+
+const { frontmatter } = Astro.props;
+const dateStringOptions : Intl.DateTimeFormatOptions = {
+	month: 'long',
+	day: 'numeric',
+	year: 'numeric'
+}
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content="Astro description" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{frontmatter.title}</title>
+	</head>
+	<body>
+		<h1 class="glow">stochastic<br>chasm</h1>
+		<hr>
+		<Nav />
+		<hr>
+		<h2>
+			{frontmatter.post_title ? frontmatter.post_title : ""}
+		</h2>
+		<time datetime={frontmatter.post_date}>
+			{frontmatter.post_date ? "\n" + new Date(frontmatter.post_date).toLocaleDateString("en-US", dateStringOptions) : ""}
+		</time>
+		<hr>
+		<slot />
+	</body>
+</html>
+<style is:global>
+	:root {
+		/* for dark mode */
+		--background-dark: rgb(57, 54, 70);
+		--block-dark: rgb(79, 69, 87);
+		--highlighted-dark: rgb(109, 93, 110);
+		--foreground-dark: rgb(235, 235, 235);
+
+		--maxwidth: min(800px, 100vw);
+
+		/* light mode coming later maybe */
+	}
+
+	@font-face {
+		font-family: AcroMono;
+		src: url("/AcroMono/AcroMono.ttf");
+	}
+	@font-face {
+		font-family: LibreBaskerville;
+		src: url("/Libre_Baskerville/LibreBaskerville-Regular.ttf");
+	}
+	@font-face {
+		font-family: LibreBaskerville;
+		src: url("/Libre_Baskerville/LibreBaskerville-Bold.ttf");
+		font-weight: bold;
+	}
+	@font-face {
+		font-family: LibreBaskerville;
+		src: url("/Libre_Baskerville/LibreBaskerville-Italic.ttf");
+		font-style: italic;
+	}
+	html {
+		background-color: var(--background-dark);
+		font-size: 12pt;
+		display: flex;
+		justify-content: center;
+	}
+	body {
+		max-width: var(--maxwidth);
+	}
+	h1 {
+		font-family: AcroMono;
+		font-size: 3rem;
+		text-align: center;
+	}
+	h2 {
+		font-family: LibreBaskerville;
+		font-size: 1.75rem;
+		text-align: center;
+		color: var(--foreground-dark);
+		padding: 0px 30px;
+	}
+	time {
+		font-family: LibreBaskerville;
+		font-size: 1.1rem;
+		text-align: center;
+		color: var(--foreground-dark);
+		display: block;
+	}
+	.glow {
+		color: white;
+		filter: drop-shadow(0px 0px 10px rgba(255,255,255,0.5));
+	}
+	p {
+		color: white;
+		font-size: 1.1rem;
+		font-family: LibreBaskerville;
+		color: var(--foreground-dark);
+		text-align: left;
+		padding: 0px 30px;
+	}
+	hr {
+		color: rgba(255,255,255,0.5);
+		margin: 1rem 0px;
+	}
+	img {
+		max-width: var(--maxwidth);
+	}
+</style>

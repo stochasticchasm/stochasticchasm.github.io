@@ -1,0 +1,53 @@
+---
+import type { MarkdownContent, MarkdownInstance } from "astro";
+import Layout from "../layouts/Layout.astro";
+
+type markdownMatter = {
+    title: string,
+    post_title: string,
+    post_date: string
+}
+
+const frontmatter: markdownMatter = {
+    title: "blog",
+    post_title: "blog posts archive",
+    post_date: ""
+}
+// example date value: 2024-08-21, YYYY-MM-DD format
+let allPosts = await Astro.glob('./posts/*.md');
+allPosts.sort((a, b) => Date.parse(b.frontmatter.post_date) - Date.parse(a.frontmatter.post_date));
+
+const dateStringOptions : Intl.DateTimeFormatOptions = {
+	month: 'long',
+	day: 'numeric',
+	year: 'numeric'
+}
+---
+
+<Layout frontmatter={frontmatter}>
+    {allPosts.map(
+        (post) => <p><a class="blog-link" href={post.url}>
+            {post.frontmatter.post_title}
+            <br>
+            <i>{new Date(post.frontmatter.post_date).toLocaleDateString("en-US", dateStringOptions)}</i>
+        </a></p>
+    )}
+</Layout>
+<style>
+    .blog-link {
+        color: white;
+        text-decoration: none;
+    }
+    .blog-link:visited {
+        color: white;
+        text-decoration: none;
+    }
+    .blog-link:hover {
+        color: white;
+        text-decoration: underline;
+    }
+    .blog-link:active {
+        color: white;
+        text-decoration: underline;
+    }
+</style>
