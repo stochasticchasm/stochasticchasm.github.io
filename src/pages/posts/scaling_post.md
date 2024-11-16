@@ -27,7 +27,7 @@ Here are some papers (brought to my attention by [Grad](https://x.com/Grad623049
 
 [Towards Learning to Reason at Pre-Training Scale](https://openreview.net/forum?id=BGnm7Lo8oW)
 
-I think that it's generally accepted that test-time scaling is a massive research space to explore, and a path forward to continue compute scaling for intelligence. A recent paper even updated model gradients during test-time to great success.
+I think that it's generally accepted that test-time scaling is a massive research space to explore, and a path forward to continue compute scaling for intelligence. A [recent paper](https://ekinakyurek.github.io/papers/ttt.pdf) even updated model gradients during test-time to great success.
 
 Modifying model behavior to think for longer amoutns of time also kind of leads to the point that we can scale reinforcement learning post-training in general. Post training RL seems to have been focused on preference data, for safety and alignment purposes. There are a few projects like the ones previously mentioned that don't rely on human preference data for their reinforment learning — I've seen the term "self-play" used. There's a ton of space for LLMs to explore through these types of methods; I think that it's a promising research direction, and one that also requires a ton of compute to scale. We're nowhere near the limits of scaling on this side of the coin. But how about pretraining?
 
