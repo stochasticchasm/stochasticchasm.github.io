@@ -1,3 +1,10 @@
+---
+layout: "../../layouts/Layout.astro"
+title: "Contextualization Machines"
+post_title: "Contextualization Machines"
+post_date: "2025-03-10"
+---
+
 ## Introduction
 This post is meant to be an illustration of my mental model of a transformer, a sort of synthesis of a bunch of thoughts and ideas I've had over the past few months. It assumes knowledge on what a transformer architecture is. 
 
@@ -5,13 +12,14 @@ I see a lot of people say transformers are next-token predictors. And while that
 
 When I talk about contextualization, I mean contextualization of tokens and hidden states. One view of the decoder-only transformer that I find useful is to think of the residual chain as the main backbone of the model and the layers as additive transformations, instead of thinking of the main flow of states through the layers as the backbone and the residuals as anchoring states or something along those lines. Here's a diagram to illustrate what I mean when I say this. 
 
-![[backbones.png]]
+![residual backbone](./backbones.png)
 
 In a sense, each layer's transformation of the hidden states can be viewed as a contextualization operation to the embedding, and then that contextualization is added back onto the token representation. If you graph out correlations (as cosine similarity) of hidden states between layers, you'll see that the hidden states after each layer are pretty similar to the hidden states before the layer, with a small difference (what I would call the extra contextualization). Here's a graph of cosine similarities between different layers' hidden states in Llama-3.2-1B.
 
-![[llama.jpeg]]
+![llama hidden states](./llama.jpeg)
 
 So, imagining a contextualiztion operation as something that enriches a token embedding or hidden state with more information, let's see how I frame the transformer.
+
 ## The Tokenizer and The Embedding Matrix
 The way I conceptualize the tokenizer and the embedding matrix as contextualization operations are pretty simple. The tokenizer's vocabulary size decides how many precontextualized pieces with which the final model will begin its forward pass, and the embedding matrix accumulates information that allows the pieces to be precontextualized during training. 
 
@@ -20,10 +28,9 @@ The embedding contains the context of the atoms (in the sense of atomic informat
 Now, extending this to the vocabulary size: for a given corpus, the greater the vocabulary size, the larger the tokens can end up being - and therefore the larger the groups of the atoms will be. This means that each embedding can have a more specific meaning at the start of the forward pass. 
 
 ### Over-Tokenized Transformer: Vocabulary is Generally Worth Scaling
-
 This brings us to our first paper tie-in pretty nicely, the [Over-Tokenized Transformer paper](https://arxiv.org/abs/2501.16975). I'm just going to copy the abstract below:
 
->Tokenization is a fundamental component of large language models (LLMs), yet its influence on model scaling and performance is not fully explored. In this paper, we introduce Over-Tokenized Transformers, a novel framework that decouples input and output vocabularies to improve language modeling performance. Specifically, our approach scales up input vocabularies to leverage multi-gram tokens. Through extensive experiments, we uncover a log-linear relationship between input vocabulary size and training loss, demonstrating that larger input vocabularies consistently enhance model performance, regardless of model size. Using a large input vocabulary, we achieve performance comparable to double-sized baselines with no additional cost. Our findings highlight the importance of tokenization in scaling laws and provide practical insight for tokenizer design, paving the way for more efficient and powerful LLMs.
+> Tokenization is a fundamental component of large language models (LLMs), yet its influence on model scaling and performance is not fully explored. In this paper, we introduce Over-Tokenized Transformers, a novel framework that decouples input and output vocabularies to improve language modeling performance. Specifically, our approach scales up input vocabularies to leverage multi-gram tokens. Through extensive experiments, we uncover a log-linear relationship between input vocabulary size and training loss, demonstrating that larger input vocabularies consistently enhance model performance, regardless of model size. Using a large input vocabulary, we achieve performance comparable to double-sized baselines with no additional cost. Our findings highlight the importance of tokenization in scaling laws and provide practical insight for tokenizer design, paving the way for more efficient and powerful LLMs.
 
 The main thing to take away from this paper is that they found that increasing tokenizer size consistently improves model performance, regardless of model size, and that there's a standard scaling-law type log-linear relationship between vocabulary size and training loss. 
 
@@ -39,18 +46,20 @@ Once again, I think thinking of a transformer as a contextualization machine mak
 The word "hello" is counted as a single token. On the other hand, "hwllp" is tokenized as "hw" + "ll" + "p" (using the GPT-4o tokenizer). Since "hello" is a single token, after the embedding layer, its meaning is pre-contextualized: the model already knows what it means. However, since "hwllp" is 3 tokens, the model has to use at least one attention layer to figure out what is going on, to figure out what this is supposed to mean. "hw", "ll", and "p" don't have a ton of meaning pre-contextualized in each of them. The typos also add some additional noise in the meaning, as the model has to realize that these tokens all together represent a typo'd version of "hello". 
 
 Now, extending this idea to jailbreaks: if the model has to spend additional layers to effectively denoise the input through contextualization, then the input may not be denoised soon enough for the model to contextualize the entire request as harmful. This would lead to a just-contextualized-enough-to-not-refuse embedding once we reach the LM-head, which in effect bypasses the internal computations required for the model to realize it needs to refuse. That's my hunch on why typos lend themselves to jailbreaks. I'll elaborate on it more in the next section, tying in a paper.
+
 ### Refusal in Language Models Is Mediated by a Single Direction
 One thing that I think supports this framing of jailbreaks is [this paper](https://arxiv.org/abs/2406.11717). I'll copy the abstract below for easy reference.
 
->Conversational large language models are fine-tuned for both instruction-following and safety, resulting in models that obey benign requests but refuse harmful ones. While this refusal behavior is widespread across chat models, its underlying mechanisms remain poorly understood. In this work, we show that refusal is mediated by a one-dimensional subspace, across 13 popular open-source chat models up to 72B parameters in size. Specifically, for each model, we find a single direction such that erasing this direction from the model's residual stream activations prevents it from refusing harmful instructions, while adding this direction elicits refusal on even harmless instructions. Leveraging this insight, we propose a novel white-box jailbreak method that surgically disables refusal with minimal effect on other capabilities. Finally, we mechanistically analyze how adversarial suffixes suppress propagation of the refusal-mediating direction. Our findings underscore the brittleness of current safety fine-tuning methods. More broadly, our work showcases how an understanding of model internals can be leveraged to develop practical methods for controlling model behavior.
+> Conversational large language models are fine-tuned for both instruction-following and safety, resulting in models that obey benign requests but refuse harmful ones. While this refusal behavior is widespread across chat models, its underlying mechanisms remain poorly understood. In this work, we show that refusal is mediated by a one-dimensional subspace, across 13 popular open-source chat models up to 72B parameters in size. Specifically, for each model, we find a single direction such that erasing this direction from the model's residual stream activations prevents it from refusing harmful instructions, while adding this direction elicits refusal on even harmless instructions. Leveraging this insight, we propose a novel white-box jailbreak method that surgically disables refusal with minimal effect on other capabilities. Finally, we mechanistically analyze how adversarial suffixes suppress propagation of the refusal-mediating direction. Our findings underscore the brittleness of current safety fine-tuning methods. More broadly, our work showcases how an understanding of model internals can be leveraged to develop practical methods for controlling model behavior.
 
 The paper is very interesting, and I especially like that since they identify refusal with a specific direction in embedding space, they can measure tending towards refusal per-layer. They do exactly that, and the graph they end up with is this.
 
-![[refusal.png]]
+![refusal correlation](./refusal.png)
 
 This graph shows that the correlation with refusal directions for unsafe inputs generally arises around 75% of the way through the decoder stack. If typo-jailbreaks cause more layers to be spent on contextualization, then line in the graph should (possibly) shift right, and correlation with the refusal aspect wouldn't be great enough by the time the embedding reaches the LM head, leading to an effective jailbreak.
 
 Through the tokenizer and embedding matrix, the model begins with precontextualized meanings, but these static representations need dynamic mechanisms to understand their role in sequence context.
+
 ## The Attention Mechanism
 The attention mechanism is probably the meat of what comes to mind when the word "contextualization" is brought up in the context (lol) of transformers, and so I don't think I'll need to elaborate much on the mental model here. It's the only way token embeddings/hidden states interact with each other and share information in the transformer. 
 
@@ -59,6 +68,7 @@ One thing I will emphasize, though, is that I tend to imagine it as a local or i
 (Speculation territory warning) However, there's nothing to indicate that the ball might be a soccer ball from the attention mechanism's transformations alone, since the ball being a soccer ball isn't mentioned anywhere in the sequence. Therefore, I kind of view attention as a form of local contextualization, for information already contained within the sequence. Now, I could be wrong about this, and it's possible that the values added to the embedding in another attention layer might include some directional information about a soccer ball based on what the key sees in the query. But given how linked the attention mechanism is to in-context learning, I think this is a solid mental model.
 
 While attention allows tokens to share and combine their meanings through local context, the model still needs a way to access broader knowledge beyond what's present in the input sequence.
+
 ## The Feed-Forward Layers
 (Much of the intuition here is from 3blue1brown's video on how LLMs might store facts, and I highly recommend you watch it. The visuals are great.)
 Now, in contrast to the attention mechanism, which works as a form of local contextualization, the feed-forward layers/multi-layer perceptron blocks act as a form of global contextualization. I like to think of it as seeing where the current embedding fits into the picture across the entire distribution of training data that the model has seen, through a directional lookup table. 
@@ -73,6 +83,7 @@ This way, I view the forward pass through the main decoder stack as continuously
 I know, I said next-token prediction was the objective, not the architecture, but I think there's still something here that warrants a bit of discussion, as to how I fit it into my mental model. So the way I see it, since next-token prediction is the objective, information about the next token has to be incorporated into the hidden state at some point. So the way I model this in my head is that the attention contextualization operations not only incorporate information about previous tokens, but at the same time incorporate speculative information about what the future context looks like. I feel like the more information you know about what exact meaning a token has in a particular context, the clearer your speculations of what come next could be. 
 
 The stronger the speculations get, the more the hidden state distribution begins to resemble the final output distribution. The way I view it, the later layers of the decoder end up having to focus more on this speculative contextualization since most of the hidden state meanings should be adequately contextualized by this point.
+
 ### The Language Model Head, or Unembedding Matrix
 The way I imagine the language model head or unembedding matrix is that it extracts the speculative-next-token information from each token's fully contextualized representation. After going through all the layers of attention and feed-forward operations, each token embedding has become richly contextualized with both local and global information, and speculative information about what comes next as well. The unembedding matrix now just extracts the speculative information, and converts it into a probability distribution over the vocabulary of tokens.
 
@@ -84,6 +95,7 @@ This also makes multi-token prediction feel more intuitive. Let's take Meta's mu
 Viewing this through the frame of a contextualization machine: thanks to the modified learning objective, the model is incentivized to speculatively contextualize further in the future, allowing the LM heads to extract multiple speculated tokens from the token embedding.
 
 What's interesting about this paper is that the models show increased performance and richer internal representations (at larger model scales), and this improves downstream performance. This suggests that multi-token prediction fundamentally improves how the model processes and contextualizes information during the forward pass. This feels pretty intuitive to me: if the model is trained with signals from multiple token positions downstream, the contextualization operations are trained to speculate further into the future. It doesn't feel like too much of a stretch to imagine that stronger contextualization operations therefore lead to stronger representations of concepts within the model: the transformer is a contextualization machine.
+
 ## Do Large Language Models Latently Perform Multi-Hop Reasoning?
 A final paper that I'd like to bring up is [this paper](https://arxiv.org/abs/2402.16837) by Deepmind. The abstract is as follows:
 
@@ -91,7 +103,7 @@ A final paper that I'd like to bring up is [this paper](https://arxiv.org/abs/24
 
 In this paper, they introduce a metric called ENTREC that measures the model's internal recall of the bridge entity from its hidden representations. In Appendix C, they validate this metric by showing that when the internal recall of "Stevie Wonder" is increased at mid to late layers, the model becomes more likely to generate "Stevie" as the next token after a comma following the descriptive phrase. Interestingly, they plot out the effects of increasing this metric at specific layers, giving us this graph below:
 
-![[multihop.png]]
+![multihop reasoning graph](multihop.png)
 
 I kinda view this as indirect support of our mental model. The effect slowly increases with layer depth, plateauing for a while, then decreasing as we get to the end of the decoder. In contextualizing framing, this means that as the hidden states get more contextualized, they slowly gather information about the token, and are more likely to make the retrieval hop. Seems to make sense. And then by the end of the decoder, the effect goes down as the hidden states have been contextualized enough and are now in the speculation phase.
 
